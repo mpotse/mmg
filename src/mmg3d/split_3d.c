@@ -157,7 +157,6 @@ int MMG3D_split1_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) {
 int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t metRidTyp) {
   MMG5_pTetra         pt,pt1;
   MMG5_xTetra         xt,xt1;
-  MMG5_pxTetra        pxt0,pxt1;
   MMG5_int            iel;
   int8_t              i,isxt,isxt1;
   uint8_t             tau[4];
@@ -178,12 +177,9 @@ int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   }
 
   pt1 = &mesh->tetra[iel];
-  pt1 = memcpy(pt1,pt,sizeof(MMG5_Tetra));
-  pxt0 = NULL;
+  *pt1 = *pt;
   if ( pt->xt ) {
-    pxt0 = &mesh->xtetra[pt->xt];
-    memcpy(&xt,pxt0,sizeof(MMG5_xTetra));
-    memcpy(&xt1,pxt0,sizeof(MMG5_xTetra));
+    xt = xt1 = mesh->xtetra[pt->xt];
   }
   else {
     memset(&xt,0,sizeof(MMG5_xTetra));
@@ -216,13 +212,12 @@ int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   if ( pt->xt ) {
     if ( isxt && !isxt1 ) {
       pt1->xt = 0;
-      memcpy(pxt0,&xt,sizeof(MMG5_xTetra));
+      mesh->xtetra[pt->xt] = xt;
     }
     else if ( !isxt && isxt1 ) {
       pt1->xt = pt->xt;
       pt->xt  = 0;
-      pxt1 = &mesh->xtetra[pt1->xt];
-      memcpy(pxt1,&xt1,sizeof(MMG5_xTetra));
+      mesh->xtetra[pt1->xt] = xt1;
     }
     else if ( isxt && isxt1 ) {
       mesh->xt++;
@@ -234,14 +229,8 @@ int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
                            fprintf(stderr,"  Exit program.\n");
                            return 0);
       }
-      pxt0 = &mesh->xtetra[pt->xt];
-      assert ( pxt0 );
-      memcpy(pxt0,&xt,sizeof(MMG5_xTetra));
-
-      pxt1 = &mesh->xtetra[mesh->xt];
-      assert ( pxt1 );
-      memcpy(pxt1,&xt1,sizeof(MMG5_xTetra));
-
+      mesh->xtetra[pt->xt] = xt;
+      mesh->xtetra[mesh->xt] = xt1;
       pt1->xt = mesh->xt;
     }
     else {
