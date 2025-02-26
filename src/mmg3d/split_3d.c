@@ -233,8 +233,8 @@ int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
                            mesh->xt--;
                            fprintf(stderr,"  Exit program.\n");
                            return 0);
-        pxt0 = &mesh->xtetra[pt->xt];
       }
+      pxt0 = &mesh->xtetra[pt->xt];
       pt1->xt = mesh->xt;
 
       assert ( pxt0 );
