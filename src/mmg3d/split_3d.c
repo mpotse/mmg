@@ -2667,7 +2667,7 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
     ftag[i] = (xt[0].ftag[i] & ~MG_REF);
   }
 
-  if ( !((imin12 == ip1) && (imin03 == ip3)) ) {
+  if ( !((imin12 == ip1) && (imin03 == ip3)) ) {   // generate 5 tets
     iel = MMG3D_newElt(mesh);
     if ( !iel ) {
       MMG3D_TETRA_REALLOC(mesh,iel,mesh->gap,
@@ -2829,7 +2829,7 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
     MG_SET(xt[4].ori, ip1); MG_SET(xt[4].ori, ip2);
   }
   else {
-    assert((imin12 == ip1) && (imin03 == ip3)) ;
+    assert((imin12 == ip1) && (imin03 == ip3)) ;      // generating 4 tets
 
     pt[0]->v[ip1] = vx[ie0] ; pt[0]->v[ip2] = vx[ie1] ;
     xt[0].tag[ie3] = ftag[ip3];  xt[0].tag[ie4] = ftag[ip2];
@@ -2867,7 +2867,7 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
   }
 
   /* Assignation of the xt fields to the appropriate tets */
-  if ( (imin12 == ip1) && (imin03 == ip3) ) {
+  if ( (imin12 == ip1) && (imin03 == ip3) ) {       // generate 4 tets
 
     for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
 
@@ -2926,8 +2926,15 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
     }
 
   }
-  else {
-    for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
+  else {     // generate 5 tets
+
+    // There may have been a bug here until 2025-02-26: isxt[4] was always set
+    // to zero because ne=4 was used as loop limit.
+    // In commit 53160794a7 it was left undefined. This was worse: while all
+    // 493 mmg tests passed, it failed miserably on my "david" cases.
+    // Now it is computed.
+    //
+    for (i=0; i<5; i++) isxt[i] = xtetra_required(xt[i]);
 
     if ( pt[0]->xt ) {
       if ( isxt[0] ) {
