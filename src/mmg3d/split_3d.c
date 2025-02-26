@@ -39,7 +39,11 @@
 
 extern int8_t  ddb;
 
-/* This function decides whether a given xTetra needs to be stored.  Currently,
+/**
+ * \param xt a single xtetra
+ * \return 1 if it must be stored, 0 otherwise
+ *
+ * Decide whether a given xTetra needs to be stored.  Currently,
  * an xTetra is only stored if any face has a reference or a tag.  This means
  * that edge references and tags are lost for edges that do not border a
  * tetrahedron with a tagged or referenced face. For example, RequiredEdges are
@@ -47,7 +51,8 @@ extern int8_t  ddb;
  * everywhere.  Orientation information is also lost most of the time. Maybe
  * this is not important when there is no surface?
  */
-static inline int xtetra_required(MMG5_xTetra xt) {
+static inline
+int xtetra_required(MMG5_xTetra xt) {
   int i;
 
   for(i=0;i<4;i++ ) {
@@ -63,8 +68,8 @@ static inline int xtetra_required(MMG5_xTetra xt) {
  * \param taued edges permutation
  *
  * Compute vertices and edges permutation for the split of 1 edge depending of
- * the edge that is splitted (i^th bit of flag is 1 if the i^th edge is
- * splitted).
+ * the edge that is split (i^th bit of flag is 1 if the i^th edge is
+ * split).
  *
  */
 inline
@@ -1036,7 +1041,7 @@ int MMG5_split1b(MMG5_pMesh mesh, MMG5_pSol met,int64_t *list, int ret, MMG5_int
  *
  * Compute vertices and edges permutation for the split of 2 edge along the same
  * face. The configuration flag is computed such as the i^th bit of flag is 1 if
- * the i^th edge is splitted).
+ * the i^th edge is split).
  *
  */
 inline
@@ -1176,7 +1181,7 @@ int MMG3D_crea_newTetra(MMG5_pMesh mesh,const int ne,MMG5_int *newtet,
   MMG5_int       iel;
   int            i,j;
 
-  /* The first tetra is the one that is splitted so it already exists */
+  /* The first tetra is the one that is split so it already exists */
   for ( i=1; i<ne; ++i ) {
     iel = MMG3D_newElt(mesh);
     if ( !iel ) {
@@ -1220,7 +1225,7 @@ int MMG3D_crea_newTetra(MMG5_pMesh mesh,const int ne,MMG5_int *newtet,
  *
  * \return 0 if fail, 1 otherwise
  *
- * Compute the quality of the \a nnew tetra of the list \a pt.
+ * Compute the quality of the \a ne tetra of the list \a pt.
  *
  */
 static inline
@@ -1235,7 +1240,7 @@ void MMG3D_update_qual(MMG5_pMesh mesh,MMG5_pSol met,const int ne,
   }
   else if ( (!met) || (!met->m) ) {
     /* in ls mode + -A option, orcal calls caltet_ani that fails */
-    for (i=0; i<ne; i++) {    
+    for (i=0; i<ne; i++) {
       pt[i]->qual=MMG5_caltet_iso(mesh,met,pt[i]);
     }
   }
@@ -1355,7 +1360,7 @@ int MMG5_split2sf_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6
     MG_SET(xt[2].ori, tau[2]);  MG_SET(xt[2].ori, tau[3]);
   }
 
-  /* Assignation of the xt fields to the appropriate tets */
+  /* Assignment of the xt fields to the appropriate tets */
   isxt[0] = xtetra_required(xt[0]);
   isxt[1] = xtetra_required(xt[1]);
   isxt[2] = xtetra_required(xt[2]);
@@ -1566,7 +1571,7 @@ int MMG5_split2(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   xt[3].ftag[ tau[1]] = 0;  xt[3].ftag[ tau[2]] = 0;
   MG_SET(xt[3].ori, tau[1]);  MG_SET(xt[3].ori, tau[2]);
 
-  /* Assignation of the xt fields to the appropriate tets */
+  /* Assignment of the xt fields to the appropriate tets */
   for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
   if ( pt[0]->xt) {
     if ( isxt[0] ) {
@@ -1778,7 +1783,7 @@ int MMG5_split3(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   xt[3].ftag[ tau[0]] = 0;  xt[3].ftag[ tau[1]] = 0;  xt[3].ftag[tau[2]] = 0;
   MG_SET(xt[3].ori, tau[0]);  MG_SET(xt[3].ori, tau[1]);  MG_SET(xt[3].ori, tau[2]);
 
-  /* Assignation of the xt fields to the appropriate tets */
+  /* Assignment of the xt fields to the appropriate tets */
   for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
 
   if ( pt[0]->xt ) {
@@ -2104,7 +2109,7 @@ int MMG5_split3cone_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx
     ftag[i] = (xt[0].ftag[i] & ~MG_REF);
   }
 
-  /* Generic formulation of split of 3 edges in cone configuration (edges 0,1,2 splitted) */
+  /* Generic formulation of split of 3 edges in cone configuration (edges 0,1,2 split) */
   pt[0]->v[tau[1]] = vx[taued[0]] ; pt[0]->v[tau[2]] = vx[taued[1]] ; pt[0]->v[tau[3]] = vx[taued[2]];
   xt[0].tag[taued[3]] = ftag[tau[3]];  xt[0].tag[taued[4]] = ftag[tau[2]];
   xt[0].tag[taued[5]] = ftag[tau[1]];  xt[0].edg[taued[3]] = 0;
@@ -2261,7 +2266,7 @@ int MMG5_split3cone_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx
     }
   }
 
-  /* Assignation of the xt fields to the appropriate tets */
+  /* Assignment of the xt fields to the appropriate tets */
   for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
 
   if ( (pt[0])->xt ) {
@@ -2694,7 +2699,7 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
     }
   }
 
-  /* Generic formulation of split of 3 edges in op configuration (edges 0,1,5 splitted) */
+  /* Generic formulation of split of 3 edges in op configuration (edges 0,1,5 split) */
   if ( (imin12 == ip2) && (imin03 == ip0) ) {
     pt[0]->v[ip0] = vx[ie1] ;  pt[0]->v[ip1] = vx[ie0] ; pt[0]->v[ip3] = vx[ie5] ;
     xt[0].tag[ie0] = ftag[ip3];  xt[0].tag[ie2] = ftag[ip1];
@@ -2866,7 +2871,7 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
     MG_SET(xt[3].ori, ip2); MG_SET(xt[3].ori, ip3);
   }
 
-  /* Assignation of the xt fields to the appropriate tets */
+  /* Assignment of the xt fields to the appropriate tets */
   if ( (imin12 == ip1) && (imin03 == ip3) ) {       // generate 4 tets
 
     for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
@@ -3154,7 +3159,7 @@ MMG5_int MMG5_split4bar(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k,int8_t metRid
   xt[3].ftag[0] = 0;  xt[3].ftag[1] = 0;  xt[3].ftag[2] = 0;
   MG_SET(xt[3].ori, 0);  MG_SET(xt[3].ori, 1);  MG_SET(xt[3].ori, 2);
 
-  /* Assignation of the xt fields to the appropriate tets */
+  /* Assignment of the xt fields to the appropriate tets */
   for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
 
   if ( pt[0]->xt ) {
@@ -3538,7 +3543,7 @@ int MMG5_split4sf(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t
     MG_SET(xt[5].ori, tau[2]); MG_SET(xt[5].ori, tau[3]);
   }
 
-  /* Assignation of the xt fields to the appropriate tets */
+  /* Assignment of the xt fields to the appropriate tets */
   for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
 
   if ( pt[0]->xt ) {
@@ -3944,7 +3949,7 @@ int MMG5_split4op_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6
     MG_SET(xt[5].ori, tau[1]); MG_SET(xt[5].ori, tau[3]);
   }
 
-  /* Assignation of the xt fields to the appropriate tets */
+  /* Assignment of the xt fields to the appropriate tets */
   for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
 
   // In this case, at least one of the 4 created tets must have a special field
@@ -4292,7 +4297,7 @@ int MMG5_split5(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
     MG_SET(xt[6].ori, tau[0]); MG_SET(xt[6].ori, tau[1]); MG_SET(xt[6].ori, tau[2]);
   }
 
-  /* Assignation of the xt fields to the appropriate tets */
+  /* Assignment of the xt fields to the appropriate tets */
   for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
 
   if ( pt[0]->xt ) {
