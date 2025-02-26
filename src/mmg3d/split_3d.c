@@ -206,15 +206,8 @@ int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   }
 
   pt->flag = pt1->flag = 0;
-  isxt  = 0 ;
-  isxt1 = 0;
-  for (i=0; i<4; i++) {
-    if ( xt.ref[i]  || xt.ftag[i] )  isxt = 1;
-    if ( xt1.ref[i] || xt1.ftag[i] ) isxt1 = 1;
-    if ( isxt && isxt1 )  goto nextstep1;
-  }
-
-nextstep1:
+  isxt  = xtetra_required(xt);
+  isxt1 = xtetra_required(xt1);
   if ( pt->xt ) {
     if ( isxt && !isxt1 ) {
       pt1->xt = 0;
@@ -584,13 +577,8 @@ int MMG5_split1b_eltspl(MMG5_pMesh mesh,MMG5_int ip,MMG5_int k,int64_t *list,MMG
 
   pt->flag = pt1->flag = 0;
 
-  isxt = 0 ;
-  isxt1 = 0;
-
-  for (i=0; i<4; i++) {
-    if ( xt.ref[i]  || xt.ftag[i]  )  isxt  = 1;
-    if ( xt1.ref[i] || xt1.ftag[i] )  isxt1 = 1;
-  }
+  isxt = xtetra_required(xt);
+  isxt1 = xtetra_required(xt1);
 
   if ( pt->xt ) {
     if ( (isxt)&&(!isxt1) ) {
@@ -1368,12 +1356,9 @@ int MMG5_split2sf_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6
   }
 
   /* Assignation of the xt fields to the appropriate tets */
-  isxt[0] = isxt[1] = isxt[2] = 0;
-  for (i=0; i<4; i++) {
-    if ( xt[0].ref[i] || xt[0].ftag[i] ) isxt[0] = 1;
-    if ( xt[1].ref[i] || xt[1].ftag[i] ) isxt[1] = 1;
-    if ( xt[2].ref[i] || xt[2].ftag[i] ) isxt[2] = 1;
-  }
+  isxt[0] = xtetra_required(xt[0]);
+  isxt[1] = xtetra_required(xt[1]);
+  isxt[2] = xtetra_required(xt[2]);
 
   if ( pt[0]->xt ) {
     if ( isxt[0] ) {
@@ -1582,14 +1567,7 @@ int MMG5_split2(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   MG_SET(xt[3].ori, tau[1]);  MG_SET(xt[3].ori, tau[2]);
 
   /* Assignation of the xt fields to the appropriate tets */
-  memset(isxt,0,4*sizeof(int8_t));
-  for (i=0; i<4; i++) {
-    int j;
-    for (j=0; j<ne; j++) {
-      if ( xt[j].ref[i] || xt[j].ftag[i] )  isxt[j] = 1;
-    }
-  }
-
+  for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
   if ( pt[0]->xt) {
     if ( isxt[0] ) {
       memcpy(pxt0,&xt[0],sizeof(MMG5_xTetra));
@@ -1801,13 +1779,7 @@ int MMG5_split3(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   MG_SET(xt[3].ori, tau[0]);  MG_SET(xt[3].ori, tau[1]);  MG_SET(xt[3].ori, tau[2]);
 
   /* Assignation of the xt fields to the appropriate tets */
-  memset(isxt,0,4*sizeof(int8_t));
-  for (i=0; i<4; i++) {
-    int j;
-    for (j=0; j<ne; j++) {
-      if ( xt[j].ref[i] || xt[j].ftag[i] )  isxt[j] = 1;
-    }
-  }
+  for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
 
   if ( pt[0]->xt ) {
     if ( isxt[0] ) {
@@ -2290,14 +2262,7 @@ int MMG5_split3cone_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx
   }
 
   /* Assignation of the xt fields to the appropriate tets */
-  isxt[0] = isxt[1] = isxt[2] = isxt[3] = 0;
-
-  for (i=0; i<4; i++) {
-    int j;
-    for (j=0; j<ne; j++) {
-      if ( xt[j].ref[i] || xt[j].ftag[i] )  isxt[j] = 1;
-    }
-  }
+  for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
 
   if ( (pt[0])->xt ) {
     if ( isxt[0] ) {
@@ -2903,14 +2868,8 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
 
   /* Assignation of the xt fields to the appropriate tets */
   if ( (imin12 == ip1) && (imin03 == ip3) ) {
-    isxt[0] = isxt[1] = isxt[2] = isxt[3] = 0;
 
-    for (i=0; i<4; i++) {
-      int j;
-      for (j=0; j<ne; j++) {
-        if ( xt[j].ref[i] || xt[j].ftag[i] )  isxt[j] = 1;
-      }
-    }
+    for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
 
     if ( pt[0]->xt ) {
       if ( isxt[0] ) {
@@ -2968,14 +2927,7 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
 
   }
   else {
-    isxt[0] = isxt[1] = isxt[2] = isxt[3] = isxt[4] = 0;
-
-    for (i=0; i<4; i++) {
-      int j;
-      for (j=0; j<=ne; j++) {
-        if ( xt[j].ref[i] || xt[j].ftag[i] )  isxt[j] = 1;
-      }
-    }
+    for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
 
     if ( pt[0]->xt ) {
       if ( isxt[0] ) {
@@ -3196,13 +3148,7 @@ MMG5_int MMG5_split4bar(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k,int8_t metRid
   MG_SET(xt[3].ori, 0);  MG_SET(xt[3].ori, 1);  MG_SET(xt[3].ori, 2);
 
   /* Assignation of the xt fields to the appropriate tets */
-  memset(isxt,0,ne*sizeof(int8_t));
-  for (i=0; i<ne; i++) {
-    int j;
-    for (j=0; j<ne; j++) {
-      if ( xt[j].ref[i] || xt[j].ftag[i] )  isxt[j] = 1;
-    }
-  }
+  for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
 
   if ( pt[0]->xt ) {
     if ( isxt[0] ) {
@@ -3586,12 +3532,7 @@ int MMG5_split4sf(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t
   }
 
   /* Assignation of the xt fields to the appropriate tets */
-  memset(isxt,0,ne*sizeof(int8_t));
-  for (i=0; i<4; i++) {
-    for (j=0; j<ne; j++) {
-      if ( (xt[j]).ref[i] || xt[j].ftag[i] ) isxt[j] = 1;
-    }
-  }
+  for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
 
   if ( pt[0]->xt ) {
     if ( isxt[0] ) {
@@ -3997,13 +3938,7 @@ int MMG5_split4op_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6
   }
 
   /* Assignation of the xt fields to the appropriate tets */
-  memset(isxt,0,ne*sizeof(int8_t));
-
-  for (i=0; i<4; i++) {
-    for(j=0;j<ne;j++ ) {
-      if ( (xt[j]).ref[i] || xt[j].ftag[i] ) isxt[j] = 1;
-    }
-  }
+  for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
 
   // In this case, at least one of the 4 created tets must have a special field
   if ( pt[0]->xt ) {
@@ -4351,13 +4286,7 @@ int MMG5_split5(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   }
 
   /* Assignation of the xt fields to the appropriate tets */
-  memset(isxt,0,ne*sizeof(int8_t));
-
-  for (i=0; i<4; i++) {
-    for (j=0; j<ne; j++) {
-      if ( (xt[j]).ref[i] || xt[j].ftag[i] ) isxt[j] = 1;
-    }
-  }
+  for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
 
   if ( pt[0]->xt ) {
     if ( isxt[0] ) {
