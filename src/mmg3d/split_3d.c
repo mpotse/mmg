@@ -39,6 +39,24 @@
 
 extern int8_t  ddb;
 
+/* This function decides whether a given xTetra needs to be stored.  Currently,
+ * an xTetra is only stored if any face has a reference or a tag.  This means
+ * that edge references and tags are lost for edges that do not border a
+ * tetrahedron with a tagged or referenced face. For example, RequiredEdges are
+ * not necessarily respected. This appears to be so by design because it is done
+ * everywhere.  Orientation information is also lost most of the time. Maybe
+ * this is not important when there is no surface?
+ */
+static inline int xtetra_required(MMG5_xTetra xt) {
+  int i;
+
+  for(i=0;i<4;i++ ) {
+    if ( (xt.ref[i]) || xt.ftag[i] ) return 1;
+  }
+  return 0;
+}
+
+
 /**
  * \param flag flag to detect the splitting configuration
  * \param tau vertices permutation
@@ -4489,7 +4507,6 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   MMG5_int       newtet[8];  // tetra indices
   MMG5_int       nxt0;       // index of the original xtetra, or 0
   int8_t         isxt0;      // 1 if original xtetra has been re-used
-  int8_t         need_xt[8] = {0,0,0,0,0,0,0,0};   // 1 for each tetra that needs an xtetra
   int16_t        ftag[4];    // original face tags
   int            i,j;
   const int8_t   ne=8;    // number of elements we create
@@ -4522,16 +4539,7 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
     yt[0].ref[0] = 0;
     yt[0].ftag[0] = 0;      // face tag
     MG_SET(yt[0].ori, 0);   // triangle orientation flags
-    for(i=0;i<4;i++ ) {
-      // An xTetra is only created if any face has a reference or a tag.
-      // This means that edge references and tags are lost for edges that
-      // do not border a tetrahedron with a tagged or referenced face.
-      // This appears to be so by design because it is done everywhere.
-      // Orientation information is also lost most of the time. Maybe
-      // this is not important when there is no surface?
-      if ( (yt[0].ref[i]) || yt[0].ftag[i] ) need_xt[0] = 1;
-    }
-    if ( need_xt[0] ) {
+    if ( xtetra_required(yt[0]) ) {
       memcpy(pxt0,&yt[0],sizeof(MMG5_xTetra));
       isxt0 = 1;               // flag original xtetra as used
     }
@@ -4552,9 +4560,6 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
     yt[1].ref[1] = 0;
     yt[1].ftag[1] = 0;
     MG_SET(yt[1].ori, 1);
-    for (i=0; i<4; i++) {
-      if ( (yt[1].ref[i]) || yt[1].ftag[i]) need_xt[1] = 1;
-    }
   }
 
   /* Modify 3rd tetra */
@@ -4568,9 +4573,6 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
     yt[2].ref[2] = 0;
     yt[2].ftag[2] = 0;
     MG_SET(yt[2].ori, 2);
-    for (i=0; i<4;i++) {
-      if ( (yt[2].ref[i]) || yt[2].ftag[i]) need_xt[2] = 1;
-    }
   }
 
   /* Modify 4th tetra */
@@ -4584,9 +4586,6 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
     yt[3].ref[3] = 0;
     yt[3].ftag[3] = 0;
     MG_SET(yt[3].ori, 3);
-    for (i=0; i<4; i++) {
-      if ( (yt[3].ref[i]) || yt[3].ftag[i]) need_xt[3] = 1;
-    }
   }
 
   /* Modify 5th tetra */
@@ -4604,7 +4603,6 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
     yt[4].ref [0] = 0;  yt[4].ref [1] = 0;  yt[4].ref [2] = 0;
     yt[4].ftag[0] = 0;  yt[4].ftag[1] = 0;  yt[4].ftag[2] = 0;
     MG_SET(yt[4].ori, 0); MG_SET(yt[4].ori, 1); MG_SET(yt[4].ori, 2);
-    if ( (yt[4].ref[3]) || yt[4].ftag[3]) need_xt[4] = 1;
   }
 
   /* Modify 6th tetra */
@@ -4622,7 +4620,6 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
     yt[5].ref [0] = 0 ; yt[5].ref [1] = 0 ; yt[5].ref [3] = 0;
     yt[5].ftag[0] = 0 ; yt[5].ftag[1] = 0 ; yt[5].ftag[3] = 0;
     MG_SET(yt[5].ori, 0); MG_SET(yt[5].ori, 1); MG_SET(yt[5].ori, 3);
-    if ( (yt[5].ref[2]) || yt[5].ftag[2]) need_xt[5] = 1;
   }
 
   /* Modify 7th tetra */
@@ -4640,7 +4637,6 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
     yt[6].ref [0] = 0 ; yt[6].ref [2] = 0 ; yt[6].ref [3] = 0;
     yt[6].ftag[0] = 0 ; yt[6].ftag[2] = 0 ; yt[6].ftag[3] = 0;
     MG_SET(yt[6].ori, 0); MG_SET(yt[6].ori, 2); MG_SET(yt[6].ori, 3);
-    if( yt[6].ref[1] || yt[6].ftag[1] ) need_xt[6] = 1;
   }
 
   /* Modify last tetra */
@@ -4658,7 +4654,6 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
     yt[7].ref [1] = 0 ; yt[7].ref [2] = 0 ; yt[7].ref [3] = 0;
     yt[7].ftag[1] = 0 ; yt[7].ftag[2] = 0 ; yt[7].ftag[3] = 0;
     MG_SET(yt[7].ori, 1); MG_SET(yt[7].ori, 2); MG_SET(yt[7].ori, 3);
-    if ( (yt[7].ref[0]) || yt[7].ftag[0]) need_xt[7] = 1;
   }
 
   /* assign xTetra to the new tets that need them */
@@ -4672,7 +4667,7 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
     }
     for(int t=1; t<8; t++){
       pt[t]->xt = 0;
-      if ( need_xt[t] ) {
+      if ( xtetra_required(yt[t]) ) {
         if ( !isxt0 ) {
           isxt0 = 1;
           pt[t]->xt = nxt0;  /* re-use the initial xtetra */
