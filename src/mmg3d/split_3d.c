@@ -83,10 +83,10 @@ int reserve_xtetras(MMG5_pMesh mesh, int n){
 /**
  * \param mesh  pointer to the mesh structure.
  * \param template  template xtetra to initialize the new xtetra
- * \return index of the new xtetra in the table
+ * \return index of the new xtetra in the table, or 0 if an allocation failed
  *
  * Allocate a new xtetra, resize the table if needed, initialize the new xtetra,
- * and return its index in the table. Return 0 if reallocations was needed but
+ * and return its index in the table. Return 0 if reallocation was needed but
  * failed.
  */
 static inline
@@ -100,12 +100,35 @@ int new_xtetra(MMG5_pMesh mesh, const MMG5_xTetra template)
   return mesh->xt;
 }
 
+/**
+ * \param mesh  pointer to the mesh structure.
+ * \return index of the new tet in the table, or 0 if an allocation failed
+ *
+ * Allocate a new tetrahedron, resize the table if needed and return its index
+ * in the table. Return 0 if table reallocation was needed but failed.
+ */
+static inline
+MMG5_int new_element(MMG5_pMesh mesh)
+{
+  MMG5_int iel = MMG3D_newElt(mesh);
+  if ( !iel ) {
+    MMG3D_TETRA_REALLOC(mesh,iel,mesh->gap,
+                        fprintf(stderr,"\n  ## Error: %s: unable to allocate"
+                                " a new element.\n",__func__);
+                        MMG5_INCREASE_MEM_MESSAGE();
+                        fprintf(stderr,"  Exit program.\n");
+                        return 0);
+  }
+  return iel;
+}
+
 
 /**
  * \param mesh  pointer to the mesh structure.
  * \param pt array of pointers to tetrahedra
  * \param yt array of xTetra to copy
  * \parm  ne length of both arrays
+ * \return 0 if an allocation failed, 1 otherwise
  *
  * For each tet, if the corresponding xtetra is nontrivial, allocate it in the
  * mesh and copy the contents. This function assumes that the first tet
@@ -138,6 +161,20 @@ int assign_recycle_xtetras(MMG5_pMesh mesh, MMG5_pTetra *pt, MMG5_xTetra *yt, in
 }
 
 
+/**
+ * \param mesh  pointer to the mesh structure.
+ * \param pt0 pointer to first tetrahedron
+ * \param pt1 pointer to second tetrahedron
+ * \param xt0 xtetra to assign to first tetrahedron
+ * \param xt1 xtetra to assign to second tetrahedron
+ * \return 0 if an allocation failed, 1 otherwise
+ *
+ * For each tet, if the corresponding xtetra is nontrivial, allocate it in the
+ * mesh and copy the contents. This function assumes that the first tet
+ * already had an xtetra. It tries to re-use this. If the first tet does not
+ * need it anymore, it will be used for the other. (If none of them uses it,
+ * it will be wasted, as there is currently no garbage collection for xtetras).
+ */
 static inline
 int assign_recycle_two_xtetras(MMG5_pMesh mesh,
                                 MMG5_pTetra pt0, MMG5_pTetra pt1,
@@ -270,15 +307,7 @@ int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   const uint8_t       *taued;
 
   /* create a new tetra */
-  iel = MMG3D_newElt(mesh);
-  if ( !iel ) {
-    MMG3D_TETRA_REALLOC(mesh,iel,mesh->gap,
-                        fprintf(stderr,"\n  ## Error: %s: unable to allocate"
-                                " a new element.\n",__func__);
-                        MMG5_INCREASE_MEM_MESSAGE();
-                        fprintf(stderr,"  Exit program.\n");
-                        return 0);
-  }
+  if(!(iel = new_element(mesh))) return 0;
 
   pt  = &mesh->tetra[k];
   pt1 = &mesh->tetra[iel];
@@ -642,7 +671,7 @@ int MMG5_split1b_eltspl(MMG5_pMesh mesh,MMG5_int ip,MMG5_int k,int64_t *list,MMG
     int r = assign_recycle_two_xtetras(mesh, pt, pt1, xt, xt1);
     if(!r) return 0;
   }
-  
+
   return 1;
 }
 
@@ -658,9 +687,8 @@ int MMG5_split1b_eltspl(MMG5_pMesh mesh,MMG5_int ip,MMG5_int k,int64_t *list,MMG
  * \param chkRidTet if 1, avoid the creation of a tet with 4 ridge vertices
  * \return -1 if we fail, 0 if we don't split the edge, 1 if success.
  *
- * Split edge \f$list[0]\%6\f$, whose shell list is passed, introducing point \a
- * ip Beware : shell has to be enumerated in ONLY ONE TRAVEL (always same
- * sense).
+ * Split edge \f$list[0]\%6\f$, whose shell list is passed, introducing point \a ip.
+ * Beware : shell has to be enumerated in ONLY ONE TRAVEL (always same sense).
  *
  */
 int MMG5_split1b(MMG5_pMesh mesh, MMG5_pSol met,int64_t *list, int ret, MMG5_int ip,
@@ -776,25 +804,13 @@ int MMG5_split1b(MMG5_pMesh mesh, MMG5_pSol met,int64_t *list, int ret, MMG5_int
   for (k=0; k<ilist; k++) {
     iel = list[k] / 6;
     ie  = list[k] % 6;
-    pt  = &mesh->tetra[iel];
 
     MMG5_int flag = 0;
     MG_SET(flag,ie);
     MMG3D_split1_cfg(flag,tau,&taued);
 
-    jel = MMG3D_newElt(mesh);
-    if ( !jel ) {
-      MMG3D_TETRA_REALLOC(mesh,jel,mesh->gap,
-                          fprintf(stderr,"\n  ## Error: %s: unable to allocate"
-                                  " a new element.\n",__func__);
-                          MMG5_INCREASE_MEM_MESSAGE();
-                          k--;
-                          for ( ; k>=0 ; --k ) {
-                            if ( !MMG3D_delElt(mesh,MMG5_abs(newtet[k])) ) return -1;
-                          }
-                          return -1);
-      pt  = &mesh->tetra[iel];
-    }
+    if(!(jel = new_element(mesh))) return 0;
+    pt  = &mesh->tetra[iel];
     pt1 = &mesh->tetra[jel];
     *pt1 = *pt;
 
@@ -2692,8 +2708,8 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
     r = assign_recycle_xtetras(mesh, pt, xt, 4);
   }
   else {     // generate 5 tets
-    // There may have been a bug here until 2025-02-26: isxt[4] was always set
-    // to zero because ne=4 was used as loop limit.
+    // There may have been a bug here until 2025-02-26: the last
+    // tetra never got an xt because ne=4 was used as loop limit.
     // In commit 53160794a7 it was left undefined. This was worse: while all
     // 493 mmg tests passed, it failed miserably on my "david" cases.
     // Now it is computed.
@@ -3860,7 +3876,7 @@ int MMG5_split5(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
  * \param k index of element to split.
  * \param vx \f$vx[i]\f$ is the index of the point to add on the edge \a i.
  *
- * \return 0 if the split fail, 1 otherwise
+ * \return 0 if the split is not good, 1 otherwise
  *
  *  Simulate split of 6 edges.
  *
@@ -3929,7 +3945,7 @@ int MMG3D_split6_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) {
  * \param vx \f$vx[i]\f$ is the index of the point to add on the edge \a i.
  * \param metRidTyp metric storage (classic or special)
  *
- * \return 0 if fail, 1 otherwise
+ * \return 0 if the split failed, 1 otherwise
  *
  * split all faces (6 edges)
  *
