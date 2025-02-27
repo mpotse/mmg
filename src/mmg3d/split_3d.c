@@ -156,7 +156,7 @@ int MMG3D_split1_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) {
  */
 int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t metRidTyp) {
   MMG5_pTetra         pt,pt1;
-  MMG5_xTetra         xt,xt1;
+  MMG5_xTetra         xt={0},xt1={0};
   MMG5_int            iel;
   int8_t              i,isxt,isxt1;
   uint8_t             tau[4];
@@ -164,7 +164,6 @@ int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   const uint8_t       *taued;
 
   /* create a new tetra */
-  pt  = &mesh->tetra[k];
   iel = MMG3D_newElt(mesh);
   if ( !iel ) {
     MMG3D_TETRA_REALLOC(mesh,iel,mesh->gap,
@@ -173,18 +172,12 @@ int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
                         MMG5_INCREASE_MEM_MESSAGE();
                         fprintf(stderr,"  Exit program.\n");
                         return 0);
-    pt = &mesh->tetra[k];
   }
 
+  pt  = &mesh->tetra[k];
   pt1 = &mesh->tetra[iel];
   *pt1 = *pt;
-  if ( pt->xt ) {
-    xt = xt1 = mesh->xtetra[pt->xt];
-  }
-  else {
-    memset(&xt,0,sizeof(MMG5_xTetra));
-    memset(&xt1,0,sizeof(MMG5_xTetra));
-  }
+  if ( pt->xt )  xt = xt1 = mesh->xtetra[pt->xt];
 
   MMG3D_split1_cfg(pt->flag,tau,&taued);
 
