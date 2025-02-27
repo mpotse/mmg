@@ -713,6 +713,7 @@ int MMG5_split1b(MMG5_pMesh mesh, MMG5_pSol met,int64_t *list, int ret, MMG5_int
       iel = list[j] / 6;
       pt  = &mesh->tetra[iel];
       ie  = list[j] % 6;
+      // FIXME: why is tetra[0] used for this?
       pt0 = &mesh->tetra[0];
       memcpy(pt0,pt,sizeof(MMG5_Tetra));
 
@@ -739,7 +740,7 @@ int MMG5_split1b(MMG5_pMesh mesh, MMG5_pSol met,int64_t *list, int ret, MMG5_int
         len = MMG5_lenedgspl(mesh,met,taued[5],pt0);
 
       if ( len < lmin )  break;
-      memcpy(pt0,pt,sizeof(MMG5_Tetra));
+      *pt0 = *pt;
 
       pt0->v[MMG5_isar[ie][0]] = ip;
       if ( chkRidTet ) {
@@ -795,7 +796,7 @@ int MMG5_split1b(MMG5_pMesh mesh, MMG5_pSol met,int64_t *list, int ret, MMG5_int
       pt  = &mesh->tetra[iel];
     }
     pt1 = &mesh->tetra[jel];
-    memcpy(pt1,pt,sizeof(MMG5_Tetra));
+    *pt1 = *pt;
 
     if ( pt->v[tau[0]] == nump )
       newtet[k] = jel;
@@ -1153,31 +1154,31 @@ int MMG3D_split2sf_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]){
 
   /* Test orientation of the three tets to be created */
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[1]] = vx[taued[4]];
   pt0->v[tau[2]] = vx[taued[5]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
   if ( imin == tau[1] ) {
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[2]] = vx[taued[5]];
     pt0->v[tau[3]] = vx[taued[4]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[3]] = vx[taued[5]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
   }
   else {
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[3]] = vx[taued[4]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[1]] = vx[taued[4]];
     pt0->v[tau[3]] = vx[taued[5]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
@@ -1223,7 +1224,7 @@ int MMG3D_crea_newTetra(MMG5_pMesh mesh,const int ne,MMG5_int *newtet,
       }
     }
     pt[i] = &mesh->tetra[iel];
-    memcpy(pt[i],pt[0],sizeof(MMG5_Tetra));
+    *pt[i] = *pt[0];
     newtet[i]=iel;
   }
 
@@ -1231,7 +1232,7 @@ int MMG3D_crea_newTetra(MMG5_pMesh mesh,const int ne,MMG5_int *newtet,
   if ( pt[0]->xt ) {
     *pxt0 = &mesh->xtetra[(pt[0])->xt];
     for ( i=0; i<ne; ++i  ) {
-      memcpy(&xt[i],*pxt0,sizeof(MMG5_xTetra));
+      xt[i] = **pxt0;
     }
   }
   else {
@@ -1433,22 +1434,22 @@ int MMG3D_split2_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]){
   }
 
   /* Test orientation of the 4 tets to be created */
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[1]] = vx[taued[0]];  pt0->v[tau[2]] = vx[taued[5]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[1]] = vx[taued[0]];  pt0->v[tau[3]] = vx[taued[5]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[0]] = vx[taued[0]];  pt0->v[tau[2]] = vx[taued[5]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[0]] = vx[taued[0]];  pt0->v[tau[3]] = vx[taued[5]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
@@ -1585,25 +1586,25 @@ int MMG3D_split3_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) {
   }
 
   /* Check orientation of the 4 newly created tets */
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[1]] = vx[taued[0]];
   pt0->v[tau[2]] = vx[taued[1]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[0]] = vx[taued[0]];
   pt0->v[tau[2]] = vx[taued[3]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[0]] = vx[taued[1]];
   pt0->v[tau[1]] = vx[taued[3]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[0]] = vx[taued[0]];
   pt0->v[tau[1]] = vx[taued[3]];
   pt0->v[tau[2]] = vx[taued[1]];
@@ -1798,14 +1799,14 @@ int MMG3D_split3cone_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]
   MMG3D_split3cone_cfg(pt->flag,pt->v,tau,&taued,&ia,&ib);
 
   /* Check orientation of the 4 newly created tets */
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[1]] = vx[taued[0]];
   pt0->v[tau[2]] = vx[taued[1]];
   pt0->v[tau[3]] = vx[taued[2]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   if ( ia == tau[3] ) {
     pt0->v[tau[0]] = vx[taued[2]];
     pt0->v[tau[1]] = vx[taued[0]];
@@ -1813,14 +1814,14 @@ int MMG3D_split3cone_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     if ( ib == tau[1] ) {
       pt0->v[tau[0]] = vx[taued[0]];
       pt0->v[tau[2]] = vx[taued[1]];
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
 
-      memcpy(pt0,pt,sizeof(MMG5_Tetra));
+      *pt0 = *pt;
       pt0->v[tau[0]] = vx[taued[1]] ;
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
@@ -1832,7 +1833,7 @@ int MMG3D_split3cone_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
 
-      memcpy(pt0,pt,sizeof(MMG5_Tetra));
+      *pt0 = *pt;
       pt0->v[tau[0]] = vx[taued[0]] ;
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
@@ -1845,14 +1846,14 @@ int MMG3D_split3cone_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     if ( ib == tau[3] ) {
       pt0->v[tau[0]] = vx[taued[2]];
       pt0->v[tau[1]] = vx[taued[0]];
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
 
-      memcpy(pt0,pt,sizeof(MMG5_Tetra));
+      *pt0 = *pt;
       pt0->v[tau[0]] = vx[taued[0]];
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
@@ -1864,7 +1865,7 @@ int MMG3D_split3cone_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
 
-      memcpy(pt0,pt,sizeof(MMG5_Tetra));
+      *pt0 = *pt;
       pt0->v[tau[0]] = vx[taued[2]];
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
@@ -1879,14 +1880,14 @@ int MMG3D_split3cone_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     if ( ib == tau[2] ) {
       pt0->v[tau[0]] = vx[taued[1]];
       pt0->v[tau[3]] = vx[taued[2]] ;
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
 
-      memcpy(pt0,pt,sizeof(MMG5_Tetra));
+      *pt0 = *pt;
       pt0->v[tau[0]] = vx[taued[2]] ;
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
@@ -1900,7 +1901,7 @@ int MMG3D_split3cone_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
 
-      memcpy(pt0,pt,sizeof(MMG5_Tetra));
+      *pt0 = *pt;
       pt0->v[tau[0]] = vx[taued[1]];
       vnew = MMG5_orvol(mesh->point,pt0->v);
       if ( vnew < MMG5_EPSOK )  return 0;
@@ -2342,28 +2343,28 @@ int MMG3D_split3op_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
   MMG3D_split3op_cfg(pt,vx,tau,&taued,sym,symed,&ip0,&ip1,&ip2,&ip3,
                         &ie0,&ie1,&ie2,&ie3,&ie4,&ie5,&imin03,&imin12);
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   if ( (imin12 == ip2) && (imin03 == ip0) ) {
     pt0->v[ip0] = vx[ie1] ;  pt0->v[ip1] = vx[ie0] ; pt0->v[ip3] = vx[ie5] ;
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip0] = vx[ie0] ; pt0->v[ip3] = vx[ie5] ;
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip0] = vx[ie0] ; pt0->v[ip2] = vx[ie5] ;
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip1] = vx[ie0] ; pt0->v[ip2] = vx[ie1] ; pt0->v[ip3] = vx[ie5] ;
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip1] = vx[ie0] ; pt0->v[ip2] = vx[ie5];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
@@ -2374,22 +2375,22 @@ int MMG3D_split3op_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip0] = vx[ie0] ; pt0->v[ip2] = vx[ie1] ; pt0->v[ip3] = vx[ie5];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip0] = vx[ie0] ; pt0->v[ip2] = vx[ie5] ;
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip1] = vx[ie0] ; pt0->v[ip2] = vx[ie5];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip1] = vx[ie0] ; pt0->v[ip2] = vx[ie1]; pt0->v[ip3] = vx[ie5];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
@@ -2399,22 +2400,22 @@ int MMG3D_split3op_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip0] = vx[ie1] ; pt0->v[ip1] = vx[ie0] ; pt0->v[ip2] = vx[ie5];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip0] = vx[ie0] ; pt0->v[ip2] = vx[ie5] ;
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip0] = vx[ie1] ; pt0->v[ip1] = vx[ie0]; pt0->v[ip3] = vx[ie5];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip0] = vx[ie0] ; pt0->v[ip3] = vx[ie5];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
@@ -2426,17 +2427,17 @@ int MMG3D_split3op_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip0] = vx[ie1] ; pt0->v[ip3] = vx[ie5] ;
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip0] = vx[ie0] ; pt0->v[ip2] = vx[ie1] ;
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ip0] = vx[ie1] ; pt0->v[ip2] = vx[ie5] ;
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
@@ -2503,13 +2504,12 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
       pt[3] = &mesh->tetra[newtet[3]];
     }
     pt[4] = &mesh->tetra[iel];
-    pt[4] = memcpy(pt[4],pt[0],sizeof(MMG5_Tetra));
+    *pt[4] = *pt[0];
     newtet[4]=iel;
 
-    if ( pt[0]->xt ) {
+    if ( pt[0]->xt ){
       memcpy(&xt[4],pxt0, sizeof(MMG5_xTetra));
     }
-
     else {
       memset(&xt[4],0, sizeof(MMG5_xTetra));
     }
@@ -2982,14 +2982,14 @@ int MMG3D_split4sf_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
   MMG3D_split4sf_cfg(pt,vx,tau,&taued,&imin23,&imin12);
 
   /* Generic formulation of split of 4 edges (with 3 on same face) */
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[1]] = vx[taued[0]];
   pt0->v[tau[2]] = vx[taued[1]];
   pt0->v[tau[3]] = vx[taued[2]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[0]] = vx[taued[2]];
   pt0->v[tau[1]] = vx[taued[0]];
   pt0->v[tau[2]] = vx[taued[1]];
@@ -2997,7 +2997,7 @@ int MMG3D_split4sf_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   if ( imin12 == tau[1] ) {
     pt0->v[tau[0]] = vx[taued[0]];
     pt0->v[tau[2]] = vx[taued[1]];
@@ -3005,7 +3005,7 @@ int MMG3D_split4sf_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[1]];
     pt0->v[tau[3]] = vx[taued[4]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
@@ -3018,14 +3018,14 @@ int MMG3D_split4sf_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[0]];
     pt0->v[tau[3]] = vx[taued[4]] ;
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
   }
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   if ( imin23 == tau[2] ) {
     pt0->v[tau[0]] = vx[taued[1]];
     pt0->v[tau[1]] = vx[taued[4]];
@@ -3033,7 +3033,7 @@ int MMG3D_split4sf_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[2]];
     pt0->v[tau[1]] = vx[taued[4]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
@@ -3046,7 +3046,7 @@ int MMG3D_split4sf_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[1]];
     pt0->v[tau[1]] = vx[taued[4]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
@@ -3290,19 +3290,19 @@ int MMG3D_split4op_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
 
   /* Generic formulation for split of 4 edges, with no 3 edges lying on the same
    * face */
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   if ( imin01 == tau[0] ) {
     pt0->v[tau[2]] = vx[taued[3]]; pt0->v[tau[3]] = vx[taued[4]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[1]] = vx[taued[4]]; pt0->v[tau[2]] = vx[taued[3]];
     pt0->v[tau[3]] = vx[taued[2]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[1]] = vx[taued[3]]; pt0->v[tau[2]] = vx[taued[1]];
     pt0->v[tau[3]] = vx[taued[2]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
@@ -3313,32 +3313,32 @@ int MMG3D_split4op_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[1]]; pt0->v[tau[2]] = vx[taued[3]];
     pt0->v[tau[3]] = vx[taued[2]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[2]]; pt0->v[tau[2]] = vx[taued[3]];
     pt0->v[tau[3]] = vx[taued[4]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
   }
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   if ( imin23 == tau[2] ) {
     pt0->v[tau[0]] = vx[taued[2]]; pt0->v[tau[1]] = vx[taued[4]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[2]]; pt0->v[tau[1]] = vx[taued[3]];
     pt0->v[tau[3]] = vx[taued[4]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[1]]; pt0->v[tau[1]] = vx[taued[3]];
     pt0->v[tau[3]] = vx[taued[2]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
@@ -3349,13 +3349,13 @@ int MMG3D_split4op_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) 
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[2]]; pt0->v[tau[1]] = vx[taued[3]];
     pt0->v[tau[2]] = vx[taued[1]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[2]]; pt0->v[tau[1]] = vx[taued[4]];
     pt0->v[tau[2]] = vx[taued[3]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
@@ -3639,43 +3639,43 @@ int MMG3D_split5_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) {
   MMG3D_split5_cfg(pt,vx,tau,&taued,&imin);
 
   /* Generic formulation of split of 5 edges */
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[0]] = vx[taued[2]]; pt0->v[tau[1]] = vx[taued[4]];
   pt0->v[tau[2]] = vx[taued[5]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[0]] = vx[taued[1]]; pt0->v[tau[1]] = vx[taued[3]];
   pt0->v[tau[3]] = vx[taued[5]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[0]] = vx[taued[2]]; pt0->v[tau[1]] = vx[taued[4]];
   pt0->v[tau[2]] = vx[taued[3]]; pt0->v[tau[3]] = vx[taued[5]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[0]] = vx[taued[2]]; pt0->v[tau[1]] = vx[taued[3]];
   pt0->v[tau[2]] = vx[taued[1]]; pt0->v[tau[3]] = vx[taued[5]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   if ( imin == tau[0] ) {
     pt0->v[tau[2]] = vx[taued[3]]; pt0->v[tau[3]] = vx[taued[4]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[1]] = vx[taued[4]]; pt0->v[tau[2]] = vx[taued[3]];
     pt0->v[tau[3]] = vx[taued[2]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[1]] = vx[taued[3]]; pt0->v[tau[2]] = vx[taued[1]];
     pt0->v[tau[3]] = vx[taued[2]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
@@ -3686,13 +3686,13 @@ int MMG3D_split5_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) {
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[2]]; pt0->v[tau[2]] = vx[taued[3]];
     pt0->v[tau[3]] = vx[taued[4]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
     if ( vnew < MMG5_EPSOK )  return 0;
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[tau[0]] = vx[taued[1]]; pt0->v[tau[2]] = vx[taued[3]];
     pt0->v[tau[3]] = vx[taued[2]];
     vnew = MMG5_orvol(mesh->point,pt0->v);
