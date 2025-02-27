@@ -167,12 +167,12 @@ int MMG3D_split1_sim(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6]) {
   MMG3D_split1_cfg(pt->flag,tau,&taued);
 
   /* Test volume of the two created tets */
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[1]] = vx[taued[0]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
 
-  memcpy(pt0,pt,sizeof(MMG5_Tetra));
+  *pt0 = *pt;
   pt0->v[tau[0]] = vx[taued[0]];
   vnew = MMG5_orvol(mesh->point,pt0->v);
   if ( vnew < MMG5_EPSOK )  return 0;
@@ -380,14 +380,14 @@ int MMG3D_simbulgept(MMG5_pMesh mesh,MMG5_pSol met,int64_t *list,int ret,MMG5_in
     ib = MMG5_iare[ie][1];
 
     pt = &mesh->tetra[iel];
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ia] = 0;
     calold = MG_MIN(calold,pt->qual);
     caltmp = MMG5_orcal(mesh,met,0);
     if ( caltmp < MMG5_EPSOK )  return 0;
     calnew = MG_MIN(calnew,caltmp);
 
-    memcpy(pt0,pt,sizeof(MMG5_Tetra));
+    *pt0 = *pt;
     pt0->v[ib] = 0;
     caltmp = MMG5_orcal(mesh,met,0);
     if ( caltmp < MMG5_EPSOK )  return 0;
@@ -544,8 +544,7 @@ int MMG3D_normalAdjaTri(MMG5_pMesh mesh , MMG5_int start, int8_t iface, int ia,
 static inline
 int MMG5_split1b_eltspl(MMG5_pMesh mesh,MMG5_int ip,MMG5_int k,int64_t *list,MMG5_int *newtet,uint8_t tau[4]) {
   MMG5_pTetra          pt,pt1;
-  MMG5_xTetra          xt,xt1;
-  MMG5_pxTetra         pxt0;
+  MMG5_xTetra          xt={0},xt1={0};
   MMG5_int             iel;
   MMG5_int             jel;
   int16_t              ftag[4];
@@ -558,16 +557,7 @@ int MMG5_split1b_eltspl(MMG5_pMesh mesh,MMG5_int ip,MMG5_int k,int64_t *list,MMG
   jel = MMG5_abs(newtet[k]);
   pt1 = &mesh->tetra[jel];
 
-  pxt0 = 0;
-  if ( pt->xt ) {
-    pxt0 = &mesh->xtetra[pt->xt];
-    memcpy(&xt,pxt0,sizeof(MMG5_xTetra));
-    memcpy(&xt1,pxt0,sizeof(MMG5_xTetra));
-  }
-  else {
-    memset(&xt,0, sizeof(MMG5_xTetra));
-    memset(&xt1,0, sizeof(MMG5_xTetra));
-  }
+  if ( pt->xt )  xt = xt1 = mesh->xtetra[pt->xt];
 
   MMG5_int flag = 0;
   MG_SET(flag,ie);
@@ -592,20 +582,18 @@ int MMG5_split1b_eltspl(MMG5_pMesh mesh,MMG5_int ip,MMG5_int k,int64_t *list,MMG
 
   pt->flag = pt1->flag = 0;
 
-  isxt = xtetra_required(xt);
-  isxt1 = xtetra_required(xt1);
-
   if ( pt->xt ) {
+    /* assign xtetras, recycling the old one where possible */
+    isxt = xtetra_required(xt);
+    isxt1 = xtetra_required(xt1);
     if ( (isxt)&&(!isxt1) ) {
       pt1->xt = 0;
-      pxt0 = &mesh->xtetra[pt->xt];
-      memcpy(pxt0,&xt,sizeof(MMG5_xTetra));
+      mesh->xtetra[pt->xt] = xt;
     }
     else if ((!isxt)&&(isxt1) ) {
       pt1->xt = pt->xt;
       pt->xt = 0;
-      pxt0 = &mesh->xtetra[pt1->xt];
-      memcpy(pxt0,&xt1,sizeof(MMG5_xTetra));
+      mesh->xtetra[pt1->xt] = xt1;
     }
     else if (isxt && isxt1 ) {
       mesh->xtetra[pt->xt] = xt;
