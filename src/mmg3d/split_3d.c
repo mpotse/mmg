@@ -308,7 +308,10 @@ int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   pt->flag = pt1->flag = 0;
 
   /* assign xTetra to the new tets that need them */
-  if( pt->xt ) assign_recycle_two_xtetras(mesh, pt, pt1, xt, xt1);
+  if( pt->xt ){
+    int r = assign_recycle_two_xtetras(mesh, pt, pt1, xt, xt1);
+    if(!r) return 0;
+  }
 
   /* Quality update */
   if ( (!metRidTyp) && met->m && met->size>1 ) {
@@ -600,7 +603,7 @@ int MMG5_split1b_eltspl(MMG5_pMesh mesh,MMG5_int ip,MMG5_int k,int64_t *list,MMG
   MMG5_int             iel;
   MMG5_int             jel;
   int16_t              ftag[4];
-  int8_t               ie,isxt,isxt1,i;
+  int8_t               ie,i;
   const uint8_t       *taued;
 
   iel = list[k] / 6;
@@ -635,8 +638,11 @@ int MMG5_split1b_eltspl(MMG5_pMesh mesh,MMG5_int ip,MMG5_int k,int64_t *list,MMG
   pt->flag = pt1->flag = 0;
 
   /* assign xTetra to the new tets that need them */
-  if( pt->xt ) assign_recycle_two_xtetras(mesh, pt, pt1, xt, xt1);
-
+  if( pt->xt ){
+    int r = assign_recycle_two_xtetras(mesh, pt, pt1, xt, xt1);
+    if(!r) return 0;
+  }
+  
   return 1;
 }
 
@@ -1310,9 +1316,8 @@ int MMG5_split2sf_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6
   MMG5_pTetra         pt[3];
   MMG5_xTetra         xt[3];
   MMG5_pxTetra        pxt0;
-  int                 i,flg;
+  int                 i,flg,r;
   MMG5_int            newtet[3];
-  int8_t              firstxt,isxt[3];
   int16_t             ftag[4];
   uint8_t             tau[4],imin;
   const uint8_t       *taued;
@@ -1381,41 +1386,8 @@ int MMG5_split2sf_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6
   }
 
   /* Assignment of the xt fields to the appropriate tets */
-  isxt[0] = xtetra_required(xt[0]);
-  isxt[1] = xtetra_required(xt[1]);
-  isxt[2] = xtetra_required(xt[2]);
-
-  if ( pt[0]->xt ) {
-    if ( isxt[0] ) {
-      memcpy(pxt0,&xt[0],sizeof(MMG5_xTetra));
-      pt[1]->xt = pt[2]->xt = 0;
-      for (i=1; i<3; i++) {
-        if ( isxt[i] ) {
-          pt[i]->xt = new_xtetra(mesh, xt[i]);
-          if(!pt[i]->xt) return 0;
-        }
-      }
-    }
-    else {
-      firstxt = 1;
-      pt[1]->xt = pt[2]->xt = 0;
-      for (i=1; i<3; i++) {
-        if ( isxt[i] ) {
-          if ( firstxt ) {
-            firstxt = 0;
-            pt[i]->xt = pt[0]->xt;
-            pxt0 = &mesh->xtetra[pt[i]->xt];
-            memcpy(pxt0,&(xt[i]),sizeof(MMG5_xTetra));
-          }
-          else {
-            pt[i]->xt = new_xtetra(mesh, xt[i]);
-            if(!pt[i]->xt) return 0;
-          }
-        }
-      }
-      pt[0]->xt = 0;
-    }
-  }
+  r = assign_recycle_xtetras(mesh, pt, xt, 3);
+  if(!r) return 0;
 
   /* Quality update */
   MMG3D_update_qual(mesh,met,ne,newtet,pt,metRidTyp);
@@ -1500,7 +1472,7 @@ int MMG5_split2(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   MMG5_pTetra         pt[4];
   MMG5_xTetra         xt[4];
   MMG5_pxTetra        pxt0;
-  int                 i;
+  int                 i,r;
   MMG5_int            newtet[4];
   int8_t              flg,firstxt,isxt[4];
   int16_t             ftag[4];
@@ -1572,41 +1544,8 @@ int MMG5_split2(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   MG_SET(xt[3].ori, tau[1]);  MG_SET(xt[3].ori, tau[2]);
 
   /* Assignment of the xt fields to the appropriate tets */
-  for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
-  if ( pt[0]->xt) {
-    if ( isxt[0] ) {
-      *pxt0 = xt[0];
-      for (i=1; i<4; i++) {
-        if ( isxt[i] ) {
-          pt[i]->xt = new_xtetra(mesh, xt[i]);
-          if(!pt[i]->xt) return 0;
-        }
-        else {
-          pt[i]->xt = 0;
-        }
-      }
-    }
-    else {
-      firstxt = 1;
-      for (i=1; i<4; i++) {
-        if ( isxt[i] ) {
-          if ( firstxt ) {
-            firstxt = 0;
-            pt[i]->xt = pt[0]->xt;
-            mesh->xtetra[pt[i]->xt] = xt[i];
-          }
-          else {
-            pt[i]->xt = new_xtetra(mesh, xt[i]);
-            if(!pt[i]->xt) return 0;
-          }
-        }
-        else {
-          pt[i]->xt = 0;
-        }
-      }
-      pt[0]->xt = 0;
-    }
-  }
+  r = assign_recycle_xtetras(mesh, pt, xt, 4);
+  if(!r) return 0;
 
   /* Quality update */
   MMG3D_update_qual(mesh,met,ne,newtet,pt,metRidTyp);
@@ -1690,7 +1629,7 @@ int MMG5_split3(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   MMG5_pTetra         pt[4];
   MMG5_xTetra         xt[4];
   MMG5_pxTetra        pxt0;
-  int                 i;
+  int                 i,r;
   MMG5_int            newtet[4];
   int8_t              flg,firstxt,isxt[4];
   int16_t             ftag[4];
@@ -1763,38 +1702,8 @@ int MMG5_split3(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   MG_SET(xt[3].ori, tau[0]);  MG_SET(xt[3].ori, tau[1]);  MG_SET(xt[3].ori, tau[2]);
 
   /* Assignment of the xt fields to the appropriate tets */
-  for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
-
-  if ( pt[0]->xt ) {
-    if ( isxt[0] ) {
-      memcpy(pxt0,&xt[0],sizeof(MMG5_xTetra));
-      pt[1]->xt = pt[2]->xt = pt[3]->xt = 0;
-      for (i=1; i<4; i++) {
-        if ( isxt[i] ) {
-          pt[i]->xt = new_xtetra(mesh, xt[i]);
-          if(!pt[i]->xt) return 0;
-        }
-      }
-    }
-    else {
-      firstxt = 1;
-      pt[1]->xt = pt[2]->xt = pt[3]->xt = 0;
-      for (i=1; i<4; i++) {
-        if ( isxt[i] ) {
-          if ( firstxt ) {
-            firstxt = 0;
-            pt[i]->xt = pt[0]->xt;
-            mesh->xtetra[pt[i]->xt] = xt[i];
-          }
-          else {
-            pt[i]->xt = new_xtetra(mesh, xt[i]);
-            if(!pt[i]->xt) return 0;
-          }
-        }
-      }
-      pt[0]->xt = 0;
-    }
-  }
+  r = assign_recycle_xtetras(mesh, pt, xt, 4);
+  if(!r) return 0;
 
   /* Quality update */
   MMG3D_update_qual(mesh,met,ne,newtet,pt,metRidTyp);
@@ -2037,7 +1946,7 @@ int MMG5_split3cone_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx
   MMG5_pTetra         pt[4];
   MMG5_xTetra         xt[4];
   MMG5_pxTetra        pxt0;
-  int                 i;
+  int                 i,r;
   MMG5_int            newtet[4];
   int8_t              flg,firstxt,isxt[4];
   int16_t             ftag[4];
@@ -2225,39 +2134,8 @@ int MMG5_split3cone_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx
   }
 
   /* Assignment of the xt fields to the appropriate tets */
-  for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
-
-  if ( (pt[0])->xt ) {
-    if ( isxt[0] ) {
-      memcpy(pxt0,&xt[0],sizeof(MMG5_xTetra));
-      pt[1]->xt = pt[2]->xt = pt[3]->xt = 0;
-      for (i=1; i<4; i++) {
-        if ( isxt[i] ) {
-          pt[i]->xt = new_xtetra(mesh, xt[i]);
-          if(!pt[i]->xt) return 0;
-        }
-      }
-    }
-    else {
-      firstxt = 1;
-      pt[1]->xt = pt[2]->xt = pt[3]->xt = 0;
-      for ( i=1; i<4; i++) {
-        if ( isxt[i] ) {
-          if ( firstxt ) {
-            firstxt = 0;
-            pt[i]->xt = pt[0]->xt;
-            pxt0 = &mesh->xtetra[(pt[i])->xt];
-            memcpy(pxt0,&xt[i],sizeof(MMG5_xTetra));
-          }
-          else {
-            pt[i]->xt = new_xtetra(mesh, xt[i]);
-            if(!pt[i]->xt) return 0;
-          }
-        }
-      }
-      (pt[0])->xt = 0;
-    }
-  }
+  r = assign_recycle_xtetras(mesh, pt, xt, 4);
+  if(!r) return 0;
 
   /* Quality update */
   MMG3D_update_qual(mesh,met,ne,newtet,pt,metRidTyp);
@@ -2583,7 +2461,7 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
   MMG5_pTetra          pt[5];
   MMG5_xTetra          xt[5];
   MMG5_pxTetra         pxt0;
-  MMG5_int             iel;
+  MMG5_int             iel,r;
   MMG5_int             newtet[5],ref[4];
   uint8_t              imin12,imin03,tau[4],sym[4],symed[6],ip0,ip1,ip2,ip3,ie0,ie1;
   uint8_t              ie2,ie3,ie4,ie5,isxt[5],firstxt,i;
@@ -2811,88 +2689,18 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
 
   /* Assignment of the xt fields to the appropriate tets */
   if ( (imin12 == ip1) && (imin03 == ip3) ) {       // generate 4 tets
-
-    for (i=0; i<4; i++) isxt[i] = xtetra_required(xt[i]);
-
-    if ( pt[0]->xt ) {
-      if ( isxt[0] ) {
-        memcpy(pxt0,&xt[0],sizeof(MMG5_xTetra));
-        pt[1]->xt = pt[2]->xt = pt[3]->xt = 0;
-
-        for (i=1; i<4; i++) {
-          if ( isxt[i] ) {
-            pt[i]->xt = new_xtetra(mesh, xt[i]);
-            if(!pt[i]->xt) return 0;
-          }
-        }
-      }
-      else {
-        firstxt = 1;
-        pt[1]->xt = pt[2]->xt = pt[3]->xt = 0;
-
-        for (i=1; i<4; i++) {
-          if ( isxt[i] ) {
-            if ( firstxt ) {
-              firstxt = 0;
-              pt[i]->xt = pt[0]->xt;
-              pxt0 = &mesh->xtetra[(pt[i])->xt];
-              memcpy(pxt0,&(xt[i]),sizeof(MMG5_xTetra));
-            }
-            else {
-              pt[i]->xt = new_xtetra(mesh, xt[i]);
-              if(!pt[i]->xt) return 0;
-            }
-          }
-        }
-        pt[0]->xt = 0;
-      }
-    }
-
+    r = assign_recycle_xtetras(mesh, pt, xt, 4);
   }
   else {     // generate 5 tets
-
     // There may have been a bug here until 2025-02-26: isxt[4] was always set
     // to zero because ne=4 was used as loop limit.
     // In commit 53160794a7 it was left undefined. This was worse: while all
     // 493 mmg tests passed, it failed miserably on my "david" cases.
     // Now it is computed.
     //
-    for (i=0; i<5; i++) isxt[i] = xtetra_required(xt[i]);
-
-    if ( pt[0]->xt ) {
-      if ( isxt[0] ) {
-        memcpy(pxt0,&(xt[0]),sizeof(MMG5_xTetra));
-        pt[1]->xt = pt[2]->xt = pt[3]->xt = pt[4]->xt = 0;
-
-        for(i=1; i<5; i++) {
-          if ( isxt[i] ) {
-            pt[i]->xt = new_xtetra(mesh, xt[i]);
-            if(!pt[i]->xt) return 0;
-          }
-        }
-      }
-      else {
-        firstxt = 1;
-        pt[1]->xt = pt[2]->xt = pt[3]->xt = pt[4]->xt = 0;
-
-        for (i=1; i<5; i++) {
-          if ( isxt[i] ) {
-            if ( firstxt ) {
-              firstxt = 0;
-              pt[i]->xt = pt[0]->xt;
-              pxt0 = &mesh->xtetra[pt[i]->xt];
-              memcpy(pxt0,&xt[i],sizeof(MMG5_xTetra));
-            }
-            else {
-              pt[i]->xt = new_xtetra(mesh, xt[i]);
-              if(!pt[i]->xt) return 0;
-            }
-          }
-        }
-        pt[0]->xt = 0;
-      }
-    }
+    r = assign_recycle_xtetras(mesh, pt, xt, 5);
   }
+  if(!r) return 0;
 
   /* Quality update */
   if ( (!metRidTyp) && met->m && met->size>1 ) {
@@ -2936,7 +2744,7 @@ MMG5_int MMG5_split4bar(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k,int8_t metRid
   MMG5_pxTetra  pxt0;
   double        o[3],cb[4];
   MMG5_int      ib,iadr,*adja,adj1,adj2,adj3,newtet[4],src;
-  int           i;
+  int           i,r;
   uint8_t       isxt[4],firstxt;
   const int     ne=4;
 
@@ -3058,43 +2866,8 @@ MMG5_int MMG5_split4bar(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k,int8_t metRid
   MG_SET(xt[3].ori, 0);  MG_SET(xt[3].ori, 1);  MG_SET(xt[3].ori, 2);
 
   /* Assignment of the xt fields to the appropriate tets */
-  for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
-
-  if ( pt[0]->xt ) {
-    if ( isxt[0] ) {
-      memcpy(pxt0,&xt[0],sizeof(MMG5_xTetra));
-      for (i=1; i<4; i++) {
-        if ( isxt[i] ) {
-          pt[i]->xt = new_xtetra(mesh, xt[i]);
-          if(!pt[i]->xt) return 0;
-        }
-        else {
-          pt[i]->xt = 0;
-        }
-      }
-    }
-    else {
-      firstxt = 1;
-      for (i=1; i<4; i++) {
-        if ( isxt[i] ) {
-          if ( firstxt ) {
-            firstxt = 0;
-            pt[i]->xt = pt[0]->xt;
-            pxt0 = &mesh->xtetra[(pt[i])->xt];
-            memcpy(pxt0,&xt[i],sizeof(MMG5_xTetra));
-          }
-          else {
-            pt[i]->xt = new_xtetra(mesh, xt[i]);
-            if(!pt[i]->xt) return 0;
-          }
-        }
-        else {
-          pt[i]->xt = 0;
-        }
-      }
-      pt[0]->xt = 0;
-    }
-  }
+  r = assign_recycle_xtetras(mesh, pt, xt, ne);
+  if(!r) return 0;
 
   /* Quality update */
   MMG3D_update_qual(mesh,met,ne,newtet,pt,metRidTyp);
@@ -3305,6 +3078,7 @@ int MMG5_split4sf(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t
   uint8_t             tau[4],imin23,imin12;
   const uint8_t       *taued = NULL;
   const int           ne=6;
+  int                 r;
 
   pt[0]  = &mesh->tetra[k];
   newtet[0]=k;
@@ -3424,41 +3198,8 @@ int MMG5_split4sf(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t
   }
 
   /* Assignment of the xt fields to the appropriate tets */
-  for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
-
-  if ( pt[0]->xt ) {
-    if ( isxt[0] ) {
-      memcpy(pxt0,&xt[0],sizeof(MMG5_xTetra));
-      pt[1]->xt = pt[2]->xt = pt[3]->xt = pt[4]->xt = pt[5]->xt = 0;
-
-      for (i=1; i<6; i++) {
-        if ( isxt[i] ) {
-          pt[i]->xt = new_xtetra(mesh, xt[i]);
-          if(!pt[i]->xt) return 0;
-        }
-      }
-    }
-    else {
-      firstxt = 1;
-      pt[1]->xt = pt[2]->xt = pt[3]->xt = pt[4]->xt = pt[5]->xt = 0;
-
-      for (i=1; i<6; i++) {
-        if ( isxt[i] ) {
-          if ( firstxt ) {
-            firstxt = 0;
-            pt[i]->xt = pt[0]->xt;
-            pxt0 = &mesh->xtetra[(pt[i])->xt];
-            memcpy(pxt0,&xt[i],sizeof(MMG5_xTetra));
-          }
-          else {
-            pt[i]->xt = new_xtetra(mesh, xt[i]);
-            if(!pt[i]->xt) return 0;
-          }
-        }
-      }
-      pt[0]->xt = 0;
-    }
-  }
+  r = assign_recycle_xtetras(mesh, pt, xt, ne);
+  if(!r) return 0;
 
   /* Quality update */
   MMG3D_update_qual(mesh,met,ne,newtet,pt,metRidTyp);
@@ -3666,7 +3407,8 @@ int MMG5_split4op_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6
   uint8_t             tau[4],imin01,imin23;
   const uint8_t       *taued;
   const int           ne=6;
-
+  int                 r;
+  
   /* Store the initial tetra and flag */
   pt[0] = &mesh->tetra[k];
   flg = pt[0]->flag;
@@ -3810,43 +3552,8 @@ int MMG5_split4op_globNum(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6
   }
 
   /* Assignment of the xt fields to the appropriate tets */
-  for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
-
-  // In this case, at least one of the 4 created tets must have a special field
-  if ( pt[0]->xt ) {
-    if ( isxt[0] ) {
-      memcpy(pxt0,&xt[0],sizeof(MMG5_xTetra));
-      pt[1]->xt = pt[2]->xt = pt[3]->xt = pt[4]->xt = pt[5]->xt = 0;
-
-      for (i=1; i<6; i++) {
-        if ( isxt[i] ) {
-          pt[i]->xt = new_xtetra(mesh, xt[i]);
-          if(!pt[i]->xt) return 0;
-        }
-      }
-    }
-    else {
-      firstxt = 1;
-      pt[1]->xt = pt[2]->xt = pt[3]->xt = pt[4]->xt = pt[5]->xt = 0;
-
-      for (i=1; i<6; i++) {
-        if ( isxt[i] ) {
-          if ( firstxt ) {
-            firstxt = 0;
-            pt[i]->xt = pt[0]->xt;
-            pxt0 = &mesh->xtetra[ pt[i]->xt];
-            memcpy(pxt0,&xt[i],sizeof(MMG5_xTetra));
-          }
-          else {
-            pt[i]->xt = new_xtetra(mesh, xt[i]);
-            if(!pt[i]->xt) return 0;
-          }
-        }
-      }
-      pt[0]->xt = 0;
-
-    }
-  }
+  r = assign_recycle_xtetras(mesh, pt, xt, ne);
+  if(!r) return 0;
 
   /* Quality update */
   MMG3D_update_qual(mesh,met,ne,newtet,pt,metRidTyp);
@@ -4011,7 +3718,7 @@ int MMG5_split5(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   MMG5_pTetra         pt[7];
   MMG5_xTetra         xt[7];
   MMG5_pxTetra        pxt0;
-  int                 i,j;
+  int                 i,j,r;
   MMG5_int            newtet[7];
   int8_t              firstxt,isxt[7];
   int16_t             ftag[4];
@@ -4138,42 +3845,8 @@ int MMG5_split5(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   }
 
   /* Assignment of the xt fields to the appropriate tets */
-  for (i=0; i<ne; i++) isxt[i] = xtetra_required(xt[i]);
-
-  if ( pt[0]->xt ) {
-    if ( isxt[0] ) {
-      memcpy(pxt0,&xt[0],sizeof(MMG5_xTetra));
-      pt[1]->xt = pt[2]->xt = pt[3]->xt = pt[4]->xt = pt[5]->xt = pt[6]->xt = 0;
-
-      for (i=1; i<7; i++) {
-        if ( isxt[i] ) {
-          pt[i]->xt = new_xtetra(mesh, xt[i]);
-          if(!pt[i]->xt) return 0;
-        }
-      }
-    }
-    else {
-      firstxt = 1;
-      pt[1]->xt = pt[2]->xt = pt[3]->xt = pt[4]->xt = pt[5]->xt = pt[6]->xt = 0;
-
-      for (i=1; i<7; i++) {
-        if ( isxt[i] ) {
-          if ( firstxt ) {
-            firstxt = 0;
-            pt[i]->xt = pt[0]->xt;
-            pxt0 = &mesh->xtetra[(pt[i])->xt];
-            memcpy(pxt0,&xt[i],sizeof(MMG5_xTetra));
-          }
-          else {
-            pt[i]->xt = new_xtetra(mesh, xt[i]);
-            if(!pt[i]->xt) return 0;
-          }
-        }
-      }
-      pt[0]->xt = 0;
-
-    }
-  }
+  r = assign_recycle_xtetras(mesh, pt, xt, ne);
+  if(!r) return 0;
 
   /* Quality update */
   MMG3D_update_qual(mesh,met,ne,newtet,pt,metRidTyp);
@@ -4410,7 +4083,10 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   }
 
   /* assign xTetra to the new tets that need them */
-  if( nxt0 ) assign_recycle_xtetras(mesh, pt, yt, 8);
+  if( nxt0 ){
+    int r = assign_recycle_xtetras(mesh, pt, yt, 8);
+    if(!r) return 0;
+  }
 
   /* Quality update */
   MMG3D_update_qual(mesh,met,ne,newtet,pt,metRidTyp);
