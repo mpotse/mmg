@@ -61,6 +61,30 @@ int xtetra_required(MMG5_xTetra xt) {
   return 0;
 }
 
+/**
+ * \param mesh  pointer to the mesh structure.
+ * \param template  template xtetra to initialize the new xtetra
+ * \return index of the new xtetra in the table
+ *
+ * Allocate a new xtetra, resize the table if needed, initialize the new xtetra,
+ * and return its index in the table. Return 0 if reallocations was needed but
+ * failed.
+ */
+static inline
+int new_xtetra(MMG5_pMesh mesh, const MMG5_xTetra template)
+{
+  mesh->xt++;
+  if ( mesh->xt > mesh->xtmax ) {
+    printf("reallocating xtetra table\n");
+    MMG5_TAB_RECALLOC(mesh,mesh->xtetra,mesh->xtmax,MMG5_GAP,MMG5_xTetra,
+                      "larger xtetra table",
+                      mesh->xt--;
+                      fprintf(stderr,"  Exit program.\n");
+                      return 0);
+  }
+  mesh->xtetra[mesh->xt] = template;
+  return mesh->xt;
+}
 
 /**
  * \param flag flag to detect the splitting configuration
@@ -213,18 +237,9 @@ int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
       mesh->xtetra[pt1->xt] = xt1;
     }
     else if ( isxt && isxt1 ) {
-      mesh->xt++;
-      if ( mesh->xt > mesh->xtmax ) {
-        /* realloc of xtetras table */
-        MMG5_TAB_RECALLOC(mesh,mesh->xtetra,mesh->xtmax,MMG5_GAP,MMG5_xTetra,
-                           "larger xtetra table",
-                           mesh->xt--;
-                           fprintf(stderr,"  Exit program.\n");
-                           return 0);
-      }
       mesh->xtetra[pt->xt] = xt;
-      mesh->xtetra[mesh->xt] = xt1;
-      pt1->xt = mesh->xt;
+      pt1->xt = new_xtetra(mesh, xt1);
+      if(!pt1->xt) return 0;
     }
     else {
       pt->xt = 0;
@@ -581,19 +596,9 @@ int MMG5_split1b_eltspl(MMG5_pMesh mesh,MMG5_int ip,MMG5_int k,int64_t *list,MMG
       memcpy(pxt0,&xt1,sizeof(MMG5_xTetra));
     }
     else if (isxt && isxt1 ) {
-      mesh->xt++;
-      if ( mesh->xt > mesh->xtmax ) {
-        /* realloc of xtetras table */
-        MMG5_TAB_RECALLOC(mesh,mesh->xtetra,mesh->xtmax,MMG5_GAP,MMG5_xTetra,
-                          "larger xtetra table",
-                          mesh->xt--;
-                          return 0);
-      }
-      pt1->xt = mesh->xt;
-      pxt0 = &mesh->xtetra[pt->xt];
-      memcpy(pxt0,&xt,sizeof(MMG5_xTetra));
-      pxt0 = &mesh->xtetra[pt1->xt];
-      memcpy(pxt0,&xt1,sizeof(MMG5_xTetra));
+      mesh->xtetra[pt->xt] = xt;
+      pt1->xt = new_xtetra(mesh, xt1);
+      if(!pt1->xt) return 0;
     }
     else {
       pt->xt = 0;
