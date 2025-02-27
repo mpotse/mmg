@@ -63,6 +63,25 @@ int xtetra_required(MMG5_xTetra xt) {
 
 /**
  * \param mesh  pointer to the mesh structure.
+ * \param n  number of xtetras to allocate
+ * \return  1 if successful, 0 if not
+ *
+ * Make sure that there is room for n more xtetras in the table. This function
+ * enlarges the table if necessary. It does not update the counter.
+ */
+static inline
+int reserve_xtetras(MMG5_pMesh mesh, int n){
+  while( mesh->xt+n > mesh->xtmax ) {
+    MMG5_TAB_RECALLOC(mesh,mesh->xtetra,mesh->xtmax,MMG5_GAP,MMG5_xTetra,
+                      "larger xtetra table",
+                      fprintf(stderr,"  Exit program.\n");
+                      return 0);
+  }
+  return 1;
+}
+
+/**
+ * \param mesh  pointer to the mesh structure.
  * \param template  template xtetra to initialize the new xtetra
  * \return index of the new xtetra in the table
  *
@@ -73,15 +92,8 @@ int xtetra_required(MMG5_xTetra xt) {
 static inline
 int new_xtetra(MMG5_pMesh mesh, const MMG5_xTetra template)
 {
+  reserve_xtetras(mesh, 1);
   mesh->xt++;
-  if ( mesh->xt > mesh->xtmax ) {
-    printf("reallocating xtetra table\n");
-    MMG5_TAB_RECALLOC(mesh,mesh->xtetra,mesh->xtmax,MMG5_GAP,MMG5_xTetra,
-                      "larger xtetra table",
-                      mesh->xt--;
-                      fprintf(stderr,"  Exit program.\n");
-                      return 0);
-  }
   mesh->xtetra[mesh->xt] = template;
   return mesh->xt;
 }
@@ -4387,19 +4399,13 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
 
   /* assign xTetra to the new tets that need them */
   if( nxt0 ){
-    /* make sure there is room in the xtetra table for all of them */
-    if ( mesh->xt > mesh->xtmax - 8 ) {
-      MMG5_TAB_RECALLOC(mesh,mesh->xtetra,mesh->xtmax,MMG5_GAP,MMG5_xTetra,
-                        "larger xtetra table",
-                        fprintf(stderr,"  Exit program.\n");
-                        return 0);
-    }
+    reserve_xtetras(mesh, 8);    // ensure room in the xtetra table for all of them
     for(int t=1; t<8; t++){
       pt[t]->xt = 0;
       if ( xtetra_required(yt[t]) ) {
         if ( !isxt0 ) {
           isxt0 = 1;
-          pt[t]->xt = nxt0;  /* re-use the initial xtetra */
+          pt[t]->xt = nxt0;    // re-use the initial xtetra
         }
         else {
           mesh->xt++;
