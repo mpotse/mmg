@@ -4268,14 +4268,6 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
     yt[0].ref[0] = 0;
     yt[0].ftag[0] = 0;      // face tag
     MG_SET(yt[0].ori, 0);   // triangle orientation flags
-    if ( xtetra_required(yt[0]) ) {
-      memcpy(pxt0,&yt[0],sizeof(MMG5_xTetra));
-      isxt0 = 1;               // flag original xtetra as used
-    }
-    else {
-      pt[0]->xt = 0;
-      isxt0 = 0;
-    }
   }
 
   /* Modify second tetra */
@@ -4388,7 +4380,8 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   /* assign xTetra to the new tets that need them */
   if( nxt0 ){
     reserve_xtetras(mesh, 8);    // ensure room in the xtetra table for all of them
-    for(int t=1; t<8; t++){
+    isxt0 = 0;
+    for(int t=0; t<8; t++){
       pt[t]->xt = 0;
       if ( xtetra_required(yt[t]) ) {
         if ( !isxt0 ) {
