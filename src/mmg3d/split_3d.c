@@ -98,6 +98,42 @@ int new_xtetra(MMG5_pMesh mesh, const MMG5_xTetra template)
   return mesh->xt;
 }
 
+
+/**
+ * \param mesh  pointer to the mesh structure.
+ * \param pt array of pointers to tetrahedra
+ * \param yt array of xTetra to copy
+ * \parm  ne length of both arrays
+ *
+ * For each tet, if the corresponding xtetra is nontrivial, allocate it in the
+ * mesh and copy the contents. This function assumes that the first tet
+ * already had an xtetra. It tries to re-use this. If the first tet does not
+ * need it anymore, it will be used for another. (If none of them uses it,
+ * it will be wasted, as there is currently no garbage collection for xtetras).
+ */
+static inline
+void assign_recycle_xtetras(MMG5_pMesh mesh, MMG5_pTetra *pt, MMG5_xTetra *yt, int ne){
+  int t, isxt0=0;
+  const int nxt0=pt[0]->xt;
+
+  reserve_xtetras(mesh, ne);    // ensure room in the xtetra table for all of them
+  for(t=0; t<ne; t++){
+    pt[t]->xt = 0;
+    if ( xtetra_required(yt[t]) ) {
+      if ( !isxt0 ) {
+        isxt0 = 1;
+        pt[t]->xt = nxt0;    // re-use the initial xtetra
+      }
+      else {
+        mesh->xt++;
+        pt[t]->xt = mesh->xt;
+      }
+      mesh->xtetra[pt[t]->xt] = yt[t];
+    }
+  }
+}
+
+
 /**
  * \param flag flag to detect the splitting configuration
  * \param tau vertices permutation
@@ -4378,24 +4414,7 @@ int MMG5_split6(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   }
 
   /* assign xTetra to the new tets that need them */
-  if( nxt0 ){
-    reserve_xtetras(mesh, 8);    // ensure room in the xtetra table for all of them
-    isxt0 = 0;
-    for(int t=0; t<8; t++){
-      pt[t]->xt = 0;
-      if ( xtetra_required(yt[t]) ) {
-        if ( !isxt0 ) {
-          isxt0 = 1;
-          pt[t]->xt = nxt0;    // re-use the initial xtetra
-        }
-        else {
-          mesh->xt++;
-          pt[t]->xt = mesh->xt;
-        }
-        memcpy(&mesh->xtetra[pt[t]->xt],&yt[t],sizeof(MMG5_xTetra));
-      }
-    }
-  }
+  if( nxt0 ) assign_recycle_xtetras(mesh, pt, yt, 8);
 
   /* Quality update */
   MMG3D_update_qual(mesh,met,ne,newtet,pt,metRidTyp);
