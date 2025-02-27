@@ -2484,7 +2484,7 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
   uint8_t              ie2,ie3,ie4,ie5,isxt[5],firstxt,i;
   int16_t              ftag[4];
   const uint8_t        *taued=NULL;
-  const int            ne=4;
+  int                  nel;
 
   pt[0]  = &mesh->tetra[k];
   newtet[0]=k;
@@ -2494,42 +2494,27 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
                         &ie0,&ie1,&ie2,&ie3,&ie4,&ie5,&imin03,&imin12);
   pt[0]->flag  = 0;
 
-  /* create 3 new tetras, the fifth being created only if needed. */
-  if ( !MMG3D_crea_newTetra(mesh,ne,newtet,pt,xt,&pxt0) ) {
+  /* determine how many tets we will create */
+  if ( (imin12 == ip1) && (imin03 == ip3) ){
+    nel = 4;
+    newtet[4] = 0;
+  }
+  else{
+    nel = 5;
+  }
+
+  /* create new tetras */
+  if ( !MMG3D_crea_newTetra(mesh,nel,newtet,pt,xt,&pxt0) ) {
     return 0;
   }
-  newtet[4] = 0;
 
   /* Store face tags and refs from split tetra*/
   for (i=0; i<4; i++) {
     ftag[i] = (xt[0].ftag[i] & ~MG_REF);
   }
 
-  if ( !((imin12 == ip1) && (imin03 == ip3)) ) {   // generate 5 tets
-    iel = MMG3D_newElt(mesh);
-    if ( !iel ) {
-      MMG3D_TETRA_REALLOC(mesh,iel,mesh->gap,
-                          fprintf(stderr,"\n  ## Error: %s: unable to allocate"
-                                  " a new element.\n",__func__);
-                          MMG5_INCREASE_MEM_MESSAGE();
-                          fprintf(stderr,"  Exit program.\n");
-                          return 0);
-      pt[0] = &mesh->tetra[newtet[0]];
-      pt[1] = &mesh->tetra[newtet[1]];
-      pt[2] = &mesh->tetra[newtet[2]];
-      pt[3] = &mesh->tetra[newtet[3]];
-    }
-    pt[4] = &mesh->tetra[iel];
-    *pt[4] = *pt[0];
-    newtet[4]=iel;
-
-    if ( pt[0]->xt ){
-      memcpy(&xt[4],pxt0, sizeof(MMG5_xTetra));
-    }
-    else {
-      memset(&xt[4],0, sizeof(MMG5_xTetra));
-    }
-  }
+  /* also needed for pt[0], if table has been reallocated */
+  for(int i=0; i<nel; i++) pt[i] = &mesh->tetra[newtet[i]];
 
   /* Generic formulation of split of 3 edges in op configuration (edges 0,1,5 split) */
   if ( (imin12 == ip2) && (imin03 == ip0) ) {
@@ -2703,19 +2688,15 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
     MG_SET(xt[3].ori, ip2); MG_SET(xt[3].ori, ip3);
   }
 
-  /* Assignment of the xt fields to the appropriate tets */
-  if ( (imin12 == ip1) && (imin03 == ip3) ) {       // generate 4 tets
-    r = assign_recycle_xtetras(mesh, pt, xt, 4);
-  }
-  else {     // generate 5 tets
-    // There may have been a bug here until 2025-02-26: the last
-    // tetra never got an xt because ne=4 was used as loop limit.
-    // In commit 53160794a7 it was left undefined. This was worse: while all
-    // 493 mmg tests passed, it failed miserably on my "david" cases.
-    // Now it is computed.
-    //
-    r = assign_recycle_xtetras(mesh, pt, xt, 5);
-  }
+  // Assignment of the xt fields to the appropriate tets.
+  //
+  // There may have been a bug here until 2025-02-26: the 5th
+  // tetra never got an xt because ne=4 was used as loop limit.
+  // In commit 53160794a7 it was left undefined. This was worse: while all
+  // 493 mmg tests passed, it failed miserably on my "david" cases.
+  // Now it is computed.
+  //
+  r = assign_recycle_xtetras(mesh, pt, xt, nel);
   if(!r) return 0;
 
   /* Quality update */
@@ -2724,7 +2705,7 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
     pt[1]->qual=MMG5_caltet33_ani(mesh,met,pt[1]);
     pt[2]->qual=MMG5_caltet33_ani(mesh,met,pt[2]);
     pt[3]->qual=MMG5_caltet33_ani(mesh,met,pt[3]);
-    if ( !((imin12 == ip1) && (imin03 == ip3)) ) {
+    if ( nel>4 ) {
       pt[4]->qual=MMG5_caltet33_ani(mesh,met,pt[4]);
     }
   }
@@ -2733,7 +2714,7 @@ int MMG5_split3op(MMG5_pMesh mesh, MMG5_pSol met, MMG5_int k, MMG5_int vx[6],int
     pt[1]->qual=MMG5_orcal(mesh,met,newtet[1]);
     pt[2]->qual=MMG5_orcal(mesh,met,newtet[2]);
     pt[3]->qual=MMG5_orcal(mesh,met,newtet[3]);
-    if ( !((imin12 == ip1) && (imin03 == ip3)) ) {
+    if ( nel>4 ) {
       pt[4]->qual=MMG5_orcal(mesh,met,newtet[4]);
     }
   }
