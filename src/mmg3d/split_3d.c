@@ -92,7 +92,9 @@ int reserve_xtetras(MMG5_pMesh mesh, int n){
 static inline
 int new_xtetra(MMG5_pMesh mesh, const MMG5_xTetra template)
 {
-  reserve_xtetras(mesh, 1);
+  int r;
+  r = reserve_xtetras(mesh, 1);
+  if(!r) return 0;
   mesh->xt++;
   mesh->xtetra[mesh->xt] = template;
   return mesh->xt;
@@ -112,11 +114,12 @@ int new_xtetra(MMG5_pMesh mesh, const MMG5_xTetra template)
  * it will be wasted, as there is currently no garbage collection for xtetras).
  */
 static inline
-void assign_recycle_xtetras(MMG5_pMesh mesh, MMG5_pTetra *pt, MMG5_xTetra *yt, int ne){
-  int t, isxt0=0;
+int assign_recycle_xtetras(MMG5_pMesh mesh, MMG5_pTetra *pt, MMG5_xTetra *yt, int ne){
+  int t, r, isxt0=0;
   const int nxt0=pt[0]->xt;
 
-  reserve_xtetras(mesh, ne);    // ensure room in the xtetra table for all of them
+  r = reserve_xtetras(mesh, ne);    // ensure room in the xtetra table for all of them
+  if(!r) return 0;
   for(t=0; t<ne; t++){
     pt[t]->xt = 0;
     if ( xtetra_required(yt[t]) ) {
@@ -131,6 +134,37 @@ void assign_recycle_xtetras(MMG5_pMesh mesh, MMG5_pTetra *pt, MMG5_xTetra *yt, i
       mesh->xtetra[pt[t]->xt] = yt[t];
     }
   }
+  return 1;
+}
+
+
+static inline
+int assign_recycle_two_xtetras(MMG5_pMesh mesh,
+                                MMG5_pTetra pt0, MMG5_pTetra pt1,
+                                MMG5_xTetra xt0, MMG5_xTetra xt1){
+  int isxt0 = xtetra_required(xt0);
+  int isxt1 = xtetra_required(xt1);
+  if ( pt0->xt ) {
+    if ( isxt0 && !isxt1 ) {
+      pt1->xt = 0;
+      mesh->xtetra[pt0->xt] = xt0;
+    }
+    else if ( !isxt0 && isxt1 ) {
+      pt1->xt = pt0->xt;
+      pt0->xt  = 0;
+      mesh->xtetra[pt1->xt] = xt1;
+    }
+    else if ( isxt0 && isxt1 ) {
+      mesh->xtetra[pt0->xt] = xt0;
+      pt1->xt = new_xtetra(mesh, xt1);
+      if(!pt1->xt) return 0;
+    }
+    else {
+      pt0->xt = 0;
+      pt1->xt = 0;
+    }
+  }
+  return 1;
 }
 
 
@@ -272,28 +306,10 @@ int MMG5_split1(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int k,MMG5_int vx[6],int8_t m
   }
 
   pt->flag = pt1->flag = 0;
-  isxt  = xtetra_required(xt);
-  isxt1 = xtetra_required(xt1);
-  if ( pt->xt ) {
-    if ( isxt && !isxt1 ) {
-      pt1->xt = 0;
-      mesh->xtetra[pt->xt] = xt;
-    }
-    else if ( !isxt && isxt1 ) {
-      pt1->xt = pt->xt;
-      pt->xt  = 0;
-      mesh->xtetra[pt1->xt] = xt1;
-    }
-    else if ( isxt && isxt1 ) {
-      mesh->xtetra[pt->xt] = xt;
-      pt1->xt = new_xtetra(mesh, xt1);
-      if(!pt1->xt) return 0;
-    }
-    else {
-      pt->xt = 0;
-      pt1->xt = 0;
-    }
-  }
+
+  /* assign xTetra to the new tets that need them */
+  if( pt->xt ) assign_recycle_two_xtetras(mesh, pt, pt1, xt, xt1);
+
   /* Quality update */
   if ( (!metRidTyp) && met->m && met->size>1 ) {
     pt->qual=MMG5_caltet33_ani(mesh,met,pt);
@@ -618,29 +634,9 @@ int MMG5_split1b_eltspl(MMG5_pMesh mesh,MMG5_int ip,MMG5_int k,int64_t *list,MMG
 
   pt->flag = pt1->flag = 0;
 
-  if ( pt->xt ) {
-    /* assign xtetras, recycling the old one where possible */
-    isxt = xtetra_required(xt);
-    isxt1 = xtetra_required(xt1);
-    if ( (isxt)&&(!isxt1) ) {
-      pt1->xt = 0;
-      mesh->xtetra[pt->xt] = xt;
-    }
-    else if ((!isxt)&&(isxt1) ) {
-      pt1->xt = pt->xt;
-      pt->xt = 0;
-      mesh->xtetra[pt1->xt] = xt1;
-    }
-    else if (isxt && isxt1 ) {
-      mesh->xtetra[pt->xt] = xt;
-      pt1->xt = new_xtetra(mesh, xt1);
-      if(!pt1->xt) return 0;
-    }
-    else {
-      pt->xt = 0;
-      pt1->xt = 0;
-    }
-  }
+  /* assign xTetra to the new tets that need them */
+  if( pt->xt ) assign_recycle_two_xtetras(mesh, pt, pt1, xt, xt1);
+
   return 1;
 }
 
