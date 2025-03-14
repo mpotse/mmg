@@ -1022,6 +1022,15 @@ int MMG3D_rmc(MMG5_pMesh mesh, MMG5_pSol sol){
  * Proceed to discretization of the implicit function carried by sol into mesh,
  * once values of sol have been snapped/checked
  *
+ * This is done by first identifying all edges in the mesh that need to be
+ * split. These edges are stored in a hash. When all have been found, the code
+ * loops over the tetrahedra and splits them according to the configuration of
+ * splits needed on their edges. This two-step approach is used because it is
+ * more economical than splitting edges one by one (and splitting all tetras in
+ * their shell) and requires the adjacency table to be restored only at the
+ * end. Knowledge of the split configuration could in principle be used to
+ * achieve better splits, but this possibility is currently not exploited
+ * because it is very difficult. We rely on mesh improvement afterwards.
  */
 int MMG3D_cuttet_ls(MMG5_pMesh mesh, MMG5_pSol sol,MMG5_pSol met){
   MMG5_pTetra   pt;
