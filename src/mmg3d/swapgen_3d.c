@@ -147,6 +147,7 @@ MMG5_int MMG5_chkswpgen(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int start,int ia,
     calnew = 1.0;
     ier = 1;
 
+#if 0
     if ( mesh->info.fem ) {
       /* Do not create internal edges between boundary points */
       p0 = &mesh->point[np];
@@ -175,6 +176,7 @@ MMG5_int MMG5_chkswpgen(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int start,int ia,
       if ( !ier )  continue;
       ier = 1;
     }
+#endif
 
     for (l=0; l<(*ilist); l++) {
       /* Do not consider tets of the shell of collapsed edge */
