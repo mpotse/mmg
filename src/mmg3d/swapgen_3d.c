@@ -147,8 +147,8 @@ MMG5_int MMG5_chkswpgen(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int start,int ia,
     calnew = 1.0;
     ier = 1;
 
-#if 0
-    if ( mesh->info.fem ) {
+#if 1
+    if ( mesh->info.fem == typchk ) {
       /* Do not create internal edges between boundary points */
       p0 = &mesh->point[np];
       if ( p0->tag & MG_BDY ) {
@@ -210,8 +210,8 @@ MMG5_int MMG5_chkswpgen(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int start,int ia,
 
       /* Prevent from creating a tetra with 4 bdy vertices */
       /* Prevent this ONLY IN FEM MODE --MP */
-#if 0
-      if ( mesh->info.fem && (mesh->point[np].tag & MG_BDY) ) {
+#if 1
+      if ( mesh->info.fem ==typchk && (mesh->point[np].tag & MG_BDY) ) {
         if ( ( mesh->point[pt->v[MMG5_ifar[i][0]]].tag & MG_BDY ) &&
              ( mesh->point[pt->v[MMG5_ifar[i][1]]].tag & MG_BDY ) ) {
           if ( ( mesh->point[pt->v[MMG5_iare[i][0]]].tag & MG_BDY ) ||
@@ -222,7 +222,7 @@ MMG5_int MMG5_chkswpgen(MMG5_pMesh mesh,MMG5_pSol met,MMG5_int start,int ia,
         }
       }
 #endif
-      
+
       /* First tetra obtained from iel */
       memcpy(pt0,pt,sizeof(MMG5_Tetra));
       pt0->v[MMG5_iare[i][0]] = np;
