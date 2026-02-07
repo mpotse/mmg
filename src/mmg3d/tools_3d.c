@@ -512,7 +512,7 @@ inline int MMG5_BezierRef ( MMG5_pMesh mesh,MMG5_int ip0,MMG5_int ip1,double s,d
  * \param ip0 first edge extremity
  * \param ip1 second edge extremity
  * \param s parameter value
- * \param o point coordinates
+ * \param o coordinates of the new point
  * \param no normal at point \a o (to fill)
  * \param to tangent at point \a o along edge ip0 ip1 (to fill)
  *
@@ -546,7 +546,7 @@ inline int MMG5_BezierNom(MMG5_pMesh mesh,MMG5_int ip0,MMG5_int ip1,double s,dou
     /* Coordinates of the new point */
     if ( MG_SIN(p0->tag) ) {
         t0[0] = ux * il;
-        t0[1] = uy * il;
+        t0[1] = uy * il;          // tangent at p0
         t0[2] = uz * il;
     }
     else {
@@ -560,7 +560,7 @@ inline int MMG5_BezierNom(MMG5_pMesh mesh,MMG5_int ip0,MMG5_int ip1,double s,dou
     }
     if ( MG_SIN(p1->tag) ) {
         t1[0] = -ux * il;
-        t1[1] = -uy * il;
+        t1[1] = -uy * il;        // tangent at p1
         t1[2] = -uz * il;
     }
     else {
@@ -593,9 +593,20 @@ inline int MMG5_BezierNom(MMG5_pMesh mesh,MMG5_int ip0,MMG5_int ip1,double s,dou
         3.0*s*s*(1.0-s)*b1[2] + s*s*s*p1->c[2];
 
     /* Coordinates of the new tangent and normal */
-    if ( MG_SIN(p0->tag) && MG_SIN(p1->tag) ) {  // function should not be used in that case
+    if ( MG_SIN(p0->tag) && MG_SIN(p1->tag) ) {
+        // NOTE: someone wrote in March 2015 or earlier that "function should
+        // not be used in that case". But it appears to work fine: the tangent
+        // and location are computed correctly. If we return 0 (failure) here
+        // then the edge cannot be split. If we return 1, it can be split, but
+        // occasionally the new vertices will not lie on a straight line, which
+        // is the only reasonable thing to do between two singular vertices. In
+        // particular, it can lead to small undulations in an outer boundary that
+        // would otherwise be perfectly flat. This bugs mesh creation in the
+        // MICROCARD project.
         memcpy(to,t0,3*sizeof(double));
-        return 1;
+        memcpy(n1,&(mesh->xpoint[p1->xp].n1[0]),3*sizeof(double));
+        memcpy(n0,&(mesh->xpoint[p1->xp].n1[0]),3*sizeof(double));
+        // return 1;
     }
     else if ( MG_SIN(p0->tag) ) {
         memcpy(n1,&(mesh->xpoint[p1->xp].n1[0]),3*sizeof(double));
@@ -611,6 +622,7 @@ inline int MMG5_BezierNom(MMG5_pMesh mesh,MMG5_int ip0,MMG5_int ip1,double s,dou
     }
 
     /* Check for internal non manifold edge */
+    /* NOTE this can evaluate to 0 if both vertices are singular */
     intnom = ( mesh->xpoint[p0->xp].nnor ) || ( mesh->xpoint[p1->xp].nnor );
 
     /* Normal interpolation */
